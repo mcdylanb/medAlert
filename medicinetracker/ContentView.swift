@@ -6,15 +6,15 @@ struct Medicine: Identifiable {
     let id = UUID()
     let name: String
     let dosage: String
-    let time: String
+    let time: Date
     let date: Date
     var isCompleted: Bool = false
     
-    // Computed property to convert time string to Date
-    var intakeTime: Date {
+    // Computed property to format time for display
+    var formattedTime: String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "h:mma" // Format for "12:00pm"
-        return dateFormatter.date(from: time) ?? Date()
+        return dateFormatter.string(from: time)
     }
 }
 
@@ -25,26 +25,27 @@ struct MedicineView: View {
     
     var body: some View {
         VStack(alignment: .leading) {
-            HStack{
+            HStack {
                 Text(medicine.name)
                     .font(.title)
                     .foregroundColor(medicine.isCompleted ? .gray : .primary)
                 Text(medicine.dosage)
                     .font(.subheadline)
+                    .foregroundColor(medicine.isCompleted ? .gray : .primary)
                 Spacer()
-                Text(medicine.time)
+                Text(medicine.formattedTime)
                     .font(.title)
-                
+                    .foregroundColor(medicine.isCompleted ? .gray : .primary)
             }
-            
         }
         .padding()
         .overlay( // Adding bottom border
             Rectangle()
                 .frame(height: 1)
-                .foregroundColor(Color.gray.opacity(0.3))
-            , alignment: .bottom
-        ).swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                .foregroundColor(Color.gray.opacity(0.3)),
+            alignment: .bottom
+        )
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button {
                 onComplete()
             } label: {
@@ -53,18 +54,19 @@ struct MedicineView: View {
             .tint(.green)
         }
         .background(Color(.systemBackground))
+        .animation(.easeInOut, value: medicine.isCompleted)
     }
 }
 
 // Update ContentView to manage a list of medicines
 struct ContentView: View {
     @State private var medicines: [Medicine] = [
-        Medicine(name: "Bioflu", dosage: "15mg", time: "12:00pm", date: Date()),
-        Medicine(name: "Vitamin C", dosage: "500mg", time: "9:00am", date: Date()),
-        Medicine(name: "Aspirin", dosage: "81mg", time: "8:00pm", date: Date()),
-        Medicine(name: "Bioflu", dosage: "15mg", time: "12:00pm", date: Date().addingTimeInterval(-86400)), // Previous day
-        Medicine(name: "Bioflu", dosage: "15mg", time: "12:00pm", date: Date().addingTimeInterval(86400)), // Next day
-        Medicine(name: "Bioflu", dosage: "15mg", time: "12:00pm", date: Date().addingTimeInterval(860)), 
+        Medicine(name: "Bioflu", dosage: "15mg", time: Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!, date: Date()),
+        Medicine(name: "Vitamin C", dosage: "500mg", time: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!, date: Date()),
+        Medicine(name: "Aspirin", dosage: "81mg", time: Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date())!, date: Date()),
+        Medicine(name: "Pain Reliever", dosage: "500mg", time: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
+        Medicine(name: "Allergy Medication", dosage: "10mg", time: Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
+        Medicine(name: "Vitamins", dosage: "1000mg", time: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
     ]
     
     var body: some View {
@@ -72,7 +74,13 @@ struct ContentView: View {
             List {
                 ForEach(medicines
                     .filter { Calendar.current.isDate($0.date, inSameDayAs: Date()) }
-                    .sorted(by: { $0.intakeTime < $1.intakeTime }) // Sort by intake time
+                    .sorted {
+                        // Sort by completion status first, then by time
+                        if $0.isCompleted == $1.isCompleted {
+                            return $0.time < $1.time // Sort by time if both are completed or not
+                        }
+                        return !$0.isCompleted // Non-completed first
+                    }
                 ) { medicine in
                     MedicineView(medicine: medicine) {
                         if let index = medicines.firstIndex(where: { $0.id == medicine.id }) {
