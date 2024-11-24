@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 
 // First, let's create a Medicine model to manage the state
@@ -69,17 +70,18 @@ struct ContentView: View {
         Medicine(name: "Vitamins", dosage: "1000mg", time: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
     ]
     
+    @State private var showingAddMedicine = false
+    
     var body: some View {
         NavigationView {
             List {
                 ForEach(medicines
                     .filter { Calendar.current.isDate($0.date, inSameDayAs: Date()) }
                     .sorted {
-                        // Sort by completion status first, then by time
                         if $0.isCompleted == $1.isCompleted {
-                            return $0.time < $1.time // Sort by time if both are completed or not
+                            return $0.time < $1.time
                         }
-                        return !$0.isCompleted // Non-completed first
+                        return !$0.isCompleted
                     }
                 ) { medicine in
                     MedicineView(medicine: medicine) {
@@ -93,6 +95,14 @@ struct ContentView: View {
             }
             .listStyle(.plain)
             .navigationTitle("Today's Medicines")
+            .navigationBarItems(trailing: Button(action: {
+                showingAddMedicine.toggle()
+            }) {
+                Image(systemName: "plus")
+            })
+            .sheet(isPresented: $showingAddMedicine) {
+                AddMedicineView(medicines: $medicines)
+            }
         }
     }
 }
@@ -102,3 +112,4 @@ struct ContentView_Previews: PreviewProvider {
         ContentView()
     }
 }
+
