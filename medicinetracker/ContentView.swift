@@ -23,6 +23,7 @@ struct Medicine: Identifiable {
 struct MedicineView: View {
     let medicine: Medicine
     let onComplete: () -> Void
+    let onDelete: () -> Void
     
     var body: some View {
         VStack(alignment: .leading) {
@@ -48,11 +49,19 @@ struct MedicineView: View {
         )
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button {
-                onComplete()
+                onComplete() // Mark as done
             } label: {
-                Label("Complete", systemImage: "checkmark.circle.fill")
+                Label("Done", systemImage: "checkmark.circle.fill")
             }
-            .tint(.green)
+            .tint(.green) // Color for the done action
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            Button {
+                onDelete() // Delete action
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(.red) // Color for the delete action
         }
         .background(Color(.systemBackground))
         .animation(.easeInOut, value: medicine.isCompleted)
@@ -65,9 +74,9 @@ struct ContentView: View {
         Medicine(name: "Bioflu", dosage: "15mg", time: Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: Date())!, date: Date()),
         Medicine(name: "Vitamin C", dosage: "500mg", time: Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date())!, date: Date()),
         Medicine(name: "Aspirin", dosage: "81mg", time: Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date())!, date: Date()),
-        Medicine(name: "Pain Reliever", dosage: "500mg", time: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
-        Medicine(name: "Allergy Medication", dosage: "10mg", time: Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
-        Medicine(name: "Vitamins", dosage: "1000mg", time: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!, date: Date()), // Today's medicine
+        Medicine(name: "Pain Reliever", dosage: "500mg", time: Calendar.current.date(bySettingHour: 6, minute: 0, second: 0, of: Date())!, date: Date()),
+        Medicine(name: "Allergy Medication", dosage: "10mg", time: Calendar.current.date(bySettingHour: 15, minute: 0, second: 0, of: Date())!, date: Date()),
+        Medicine(name: "Vitamins", dosage: "1000mg", time: Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date())!, date: Date()),
     ]
     
     @State private var showingAddMedicine = false
@@ -84,11 +93,15 @@ struct ContentView: View {
                         return !$0.isCompleted
                     }
                 ) { medicine in
-                    MedicineView(medicine: medicine) {
+                    MedicineView(medicine: medicine, onComplete: {
                         if let index = medicines.firstIndex(where: { $0.id == medicine.id }) {
                             medicines[index].isCompleted.toggle()
                         }
-                    }
+                    }, onDelete: {
+                        if let index = medicines.firstIndex(where: { $0.id == medicine.id }) {
+                            medicines.remove(at: index)
+                        }
+                    })
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                 }
